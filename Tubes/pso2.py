@@ -1,70 +1,88 @@
+import numpy as np
 import random
-import math
 
-# Fungsi f(x, y)
-def func(x, y):
-    return 10 + (2 * x**2) - 4 * math.cos(2 * math.pi * x) + y**2 - 4 * math.cos(2 * math.pi * y)
+# Fungsi objektif yang akan diminimumkan (f(x, y))
+def objective_function(position):
+    x, y = position  # Pisahkan x dan y dari posisi
+    return 10 + 2 * x**2 - 4 * np.cos(2 * np.pi * x) + y**2 - 4 * np.cos(2 * np.pi * y)
 
-# Inisialisasi variabel
-n_particles = 10
-xi = [random.uniform(-5, 5) for _ in range(n_particles)]
-yi = [random.uniform(-5, 5) for _ in range(n_particles)]
-xi_before = [0] * n_particles
-yi_before = [0] * n_particles
-vix = [0] * n_particles
-viy = [0] * n_particles
+# Class Particle
+class Particle:
+    def __init__(self, position, velocity):
+        self.position = position  # Posisi partikel saat ini [x, y]
+        self.velocity = velocity  # Kecepatan partikel saat ini [vx, vy]
+        self.pbest_position = position  # Posisi terbaik partikel
+        self.pbest_value = float('inf')  # Nilai fungsi terbaik partikel
+
+    def update_velocity(self, W, c1, c2, gbest_position):
+        r1 = random.random()  # Nilai random untuk perhitungan kognitif
+        r2 = random.random()  # Nilai random untuk perhitungan sosial
+
+        # Perhitungan komponen kecepatan
+        cognitive = c1 * r1 * (np.array(self.pbest_position) - np.array(self.position))
+        social = c2 * r2 * (np.array(gbest_position) - np.array(self.position))
+        self.velocity = W * np.array(self.velocity) + cognitive + social
+
+    def update_position(self, bounds):
+        # Update posisi partikel
+        self.position = np.array(self.position) + self.velocity
+
+        # Pastikan posisi berada dalam batas [-5, 5] untuk x dan y
+        self.position = np.clip(self.position, bounds[0], bounds[1])
+
+# Class Swarm
+class Swarm:
+    def __init__(self, num_particles, bounds, function, W=1, c1=0.5, c2=0.5):
+        self.num_particles = num_particles  # Jumlah partikel
+        self.bounds = bounds  # Batas posisi partikel [-5, 5] untuk x dan y
+        self.function = function  # Fungsi objektif
+        self.W = W  # Inertia weight
+        self.c1 = c1  # Koefisien kognitif
+        self.c2 = c2  # Koefisien sosial
+        self.gbest_position = None  # Posisi global terbaik
+        self.gbest_value = float('inf')  # Nilai fungsi global terbaik
+        self.particles = []  # Daftar partikel
+
+        # Inisialisasi partikel
+        for _ in range(num_particles):
+            position = [random.uniform(bounds[0], bounds[1]), random.uniform(bounds[0], bounds[1])]
+            velocity = [random.uniform(-abs(bounds[1] - bounds[0]), abs(bounds[1] - bounds[0])),
+                        random.uniform(-abs(bounds[1] - bounds[0]), abs(bounds[1] - bounds[0]))]
+            self.particles.append(Particle(position, velocity))
+
+    def optimize(self, max_iterations):
+        for iteration in range(max_iterations):
+            for particle in self.particles:
+                # Hitung nilai fungsi di posisi partikel saat ini
+                fitness = self.function(particle.position)
+
+                # Update posisi terbaik partikel (pbest)
+                if fitness < particle.pbest_value:
+                    particle.pbest_value = fitness
+                    particle.pbest_position = particle.position.copy()
+
+                # Update posisi global terbaik (gbest)
+                if fitness < self.gbest_value:
+                    self.gbest_value = fitness
+                    self.gbest_position = particle.position.copy()
+
+            # Update velocity dan position semua partikel
+            for particle in self.particles:
+                particle.update_velocity(self.W, self.c1, self.c2, self.gbest_position)
+                particle.update_position(self.bounds)
+
+            print(f"Iteration {iteration+1}: Best Position = {self.gbest_position}, Best Value = {self.gbest_value}")
 
 # Parameter
-c1, c2 = 1, 0.5
-w = 1
-r1, r2 = random.random(), random.random()
-Pbestix, Pbestiy = xi[:], yi[:]
-Gbestx, Gbesty = 0, 0
+num_particles = 10  # Jumlah partikel
+bounds = [-5, 5]  # Rentang posisi x dan y [-5, 5]
+max_iterations = 3  # Jumlah iterasi
 
-# Cari Gbest (partikel dengan nilai fungsi terkecil)
-def find_gbest(xi, yi):
-    global Gbestx, Gbesty
-    f_values = [func(x, y) for x, y in zip(xi, yi)]
-    min_index = f_values.index(min(f_values))
-    Gbestx, Gbesty = xi[min_index], yi[min_index]
+# Jalankan optimasi
+swarm = Swarm(num_particles, bounds, objective_function)
+swarm.optimize(max_iterations)
 
-# Update Pbest
-def update_pbest(xi, yi, xi_before, yi_before):
-    global Pbestix, Pbestiy
-    for i in range(n_particles):
-        if func(xi[i], yi[i]) < func(xi_before[i], yi_before[i]):
-            Pbestix[i], Pbestiy[i] = xi[i], yi[i]
-        else:
-            Pbestix[i], Pbestiy[i] = xi_before[i], yi_before[i]
-
-# Update kecepatan dan posisi
-def update_velocity_position(xi, yi, vix, viy):
-    for i in range(n_particles):
-        vix[i] = w * vix[i] + c1 * r1 * (Pbestix[i] - xi[i]) + c2 * r2 * (Gbestx - xi[i])
-        viy[i] = w * viy[i] + c1 * r1 * (Pbestiy[i] - yi[i]) + c2 * r2 * (Gbesty - yi[i])
-        xi[i] += vix[i]
-        yi[i] += viy[i]
-
-# Jumlah iterasi
-n_iter = int(input("Masukkan jumlah iterasi: "))
-
-# Loop iterasi
-for iteration in range(n_iter):
-    print(f"\nIterasi ke-{iteration + 1}")
-    for i in range(n_particles):
-        print(f"Partikel {i + 1}: x = {xi[i]:.4f}, y = {yi[i]:.4f}, f(x, y) = {func(xi[i], yi[i]):.4f}")
-
-    # Cari Gbest
-    find_gbest(xi, yi)
-
-    # Update Pbest
-    if iteration > 0:
-        update_pbest(xi, yi, xi_before, yi_before)
-
-    # Update kecepatan dan posisi
-    update_velocity_position(xi, yi, vix, viy)
-
-    # Simpan posisi saat ini sebagai xi_before dan yi_before
-    xi_before, yi_before = xi[:], yi[:]
-
-print(f"\nHasil akhir: \nGbestx = {Gbestx:.4f}\nGbesty = {Gbesty:.4f}\nf(Gbestx, Gbesty) = {func(Gbestx, Gbesty):.4f}")
+# Implementasi di luar class
+print("\nFinal Result:")
+print(f"Global Best Position: {swarm.gbest_position}")
+print(f"Global Best Value: {swarm.gbest_value}")
