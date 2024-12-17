@@ -40,6 +40,7 @@ class Swarm:
         self.gbest_position = None  # Posisi global terbaik
         self.gbest_value = float('inf')  # Nilai fungsi global terbaik
         self.particles = []  # Daftar partikel
+        self.history = []  # Log untuk menyimpan data tiap iterasi
 
         # Inisialisasi partikel
         for _ in range(num_particles):
@@ -49,6 +50,8 @@ class Swarm:
 
     def optimize(self, max_iterations):
         for iteration in range(max_iterations):
+            iteration_data = {"iteration": iteration + 1, "particles": []}
+
             for particle in self.particles:
                 # Hitung nilai fungsi di posisi partikel saat ini
                 fitness = self.function(particle.position)
@@ -63,23 +66,49 @@ class Swarm:
                     self.gbest_value = fitness
                     self.gbest_position = particle.position
 
+                # Simpan data partikel untuk iterasi ini
+                iteration_data["particles"].append({
+                    "position": particle.position,
+                    "velocity": particle.velocity,
+                    "pBest": particle.pbest_value,
+                    "f(x)": fitness
+                })
+
             # Update velocity dan position semua partikel
             for particle in self.particles:
                 particle.update_velocity(self.W, self.c1, self.c2, self.gbest_position)
                 particle.update_position(self.bounds)
 
-            print(f"Iteration {iteration+1}: Best Position = {self.gbest_position}, Best Value = {self.gbest_value}")
+            # Simpan data iterasi ke history
+            iteration_data["gBest"] = self.gbest_value
+            self.history.append(iteration_data)
+
+    def print_history(self):
+        print(f"{'Iteration':<10} {'Particle':<10} {'Position':<10} {'Velocity':<10} {'pBest':<15} {'gBest':<15}")
+        print("=" * 70)
+
+        for data in self.history:
+            iteration = data["iteration"]
+            gBest = data["gBest"]
+
+            for idx, p in enumerate(data["particles"]):
+                print(f"{iteration:<10} {idx+1:<10} {p['position']:<10.4f} {p['velocity']:<10.4f} "
+                      f"{p['pBest']:<15.4f} {gBest:<15.4f}")
+            print("-" * 70)
+
 
 # Parameter
 num_particles = 10  # Jumlah partikel
 bounds = [0, 4]  # Rentang posisi x
-max_iterations = 3  # Jumlah iterasi
+max_iterations = 3  # Jumlah iterasi (disingkat untuk demonstrasi)
 
 # Jalankan optimasi
 swarm = Swarm(num_particles, bounds, objective_function)
 swarm.optimize(max_iterations)
 
-# Implementasi di luar class
+# Tampilkan hasil
+swarm.print_history()
+
 print("\nFinal Result:")
 print(f"Global Best Position: {swarm.gbest_position}")
 print(f"Global Best Value: {swarm.gbest_value}")

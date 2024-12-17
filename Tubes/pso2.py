@@ -51,27 +51,37 @@ class Swarm:
             self.particles.append(Particle(position, velocity))
 
     def optimize(self, max_iterations):
-        for iteration in range(max_iterations):
-            for particle in self.particles:
-                # Hitung nilai fungsi di posisi partikel saat ini
-                fitness = self.function(particle.position)
+            for iteration in range(max_iterations):
+                print(f"\nIteration {iteration + 1}")
+                print(f"{'Particle':<10} {'x':<10} {'y':<10} {'vx':<10} {'vy':<10} {'pBest_x':<10} {'pBest_y':<10} {'pBest_value':<15} {'gBest_value':<15}")
+                print("=" * 100)
 
-                # Update posisi terbaik partikel (pbest)
-                if fitness < particle.pbest_value:
-                    particle.pbest_value = fitness
-                    particle.pbest_position = particle.position.copy()
+                for idx, particle in enumerate(self.particles):
+                    # Hitung nilai fungsi di posisi partikel saat ini
+                    fitness = self.function(particle.position)
 
-                # Update posisi global terbaik (gbest)
-                if fitness < self.gbest_value:
-                    self.gbest_value = fitness
-                    self.gbest_position = particle.position.copy()
+                    # Update posisi terbaik partikel (pbest)
+                    if fitness < particle.pbest_value:
+                        particle.pbest_value = fitness
+                        particle.pbest_position = particle.position.copy()
 
-            # Update velocity dan position semua partikel
-            for particle in self.particles:
-                particle.update_velocity(self.W, self.c1, self.c2, self.gbest_position)
-                particle.update_position(self.bounds)
+                    # Update posisi global terbaik (gbest)
+                    if fitness < self.gbest_value:
+                        self.gbest_value = fitness
+                        self.gbest_position = particle.position.copy()
 
-            print(f"Iteration {iteration+1}: Best Position = {self.gbest_position}, Best Value = {self.gbest_value}")
+                    # Cetak data partikel dalam iterasi ini
+                    x, y = particle.position
+                    vx, vy = particle.velocity
+                    pBest_x, pBest_y = particle.pbest_position
+                    print(f"{idx + 1:<10} {x:<10.4f} {y:<10.4f} {vx:<10.4f} {vy:<10.4f} {pBest_x:<10.4f} {pBest_y:<10.4f} {particle.pbest_value:<15.4f} {self.gbest_value:<15.4f}")
+
+                # Update velocity dan position semua partikel
+                for particle in self.particles:
+                    particle.update_velocity(self.W, self.c1, self.c2, self.gbest_position)
+                    particle.update_position(self.bounds)    
+
+
 
 # Parameter
 num_particles = 10  # Jumlah partikel
