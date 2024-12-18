@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import matplotlib.pyplot as plt
 
 # Fungsi objektif yang akan diminimumkan
 def objective_function(x):
@@ -41,6 +42,8 @@ class Swarm:
         self.gbest_value = float('inf')  # Nilai fungsi global terbaik
         self.particles = []  # Daftar partikel
         self.history = []  # Log untuk menyimpan data tiap iterasi
+        self.x = []  # Koleksi posisi x
+        self.y = []  # Koleksi posisi y (0 untuk semua partikel)
 
         # Inisialisasi partikel
         for _ in range(num_particles):
@@ -49,13 +52,14 @@ class Swarm:
             self.particles.append(Particle(position, velocity))
 
     def optimize(self, max_iterations):
+
         for iteration in range(max_iterations):
             iteration_data = {"iteration": iteration + 1, "particles": []}
-
+            
             for particle in self.particles:
                 # Hitung nilai fungsi di posisi partikel saat ini
                 fitness = self.function(particle.position)
-                
+
                 # Update posisi terbaik partikel (pbest)
                 if fitness < particle.pbest_value:
                     particle.pbest_value = fitness
@@ -73,6 +77,10 @@ class Swarm:
                     "pBest": particle.pbest_value,
                     "f(x)": fitness
                 })
+                
+                # Tambahkan posisi partikel ke x dan 0 ke y
+                self.x.append(particle.position)
+                self.y.append(0)
 
             # Update velocity dan position semua partikel
             for particle in self.particles:
@@ -100,7 +108,7 @@ class Swarm:
 # Parameter
 num_particles = 10  # Jumlah partikel
 bounds = [0, 4]  # Rentang posisi x
-max_iterations = 3  # Jumlah iterasi (disingkat untuk demonstrasi)
+max_iterations = 10  # Jumlah iterasi (disingkat untuk demonstrasi)
 
 # Jalankan optimasi
 swarm = Swarm(num_particles, bounds, objective_function)
@@ -109,6 +117,24 @@ swarm.optimize(max_iterations)
 # Tampilkan hasil
 swarm.print_history()
 
+
+
 print("\nFinal Result:")
 print(f"Global Best Position: {swarm.gbest_position}")
 print(f"Global Best Value: {swarm.gbest_value}")
+
+# Plotting posisi partikel
+plt.figure(figsize=(8, 6))
+plt.scatter(swarm.x, swarm.y, color='blue', label='Particle Positions')  # Partikel biasa
+plt.axhline(0, color='gray', linestyle='--', linewidth=0.5)  # Garis horizontal pada y = 0
+
+# Highlight gbest in red
+plt.scatter(swarm.gbest_position, 0, color='red', label='Global Best', s=100)  # gbest position
+
+# Additional plot details
+plt.title("Particle Positions Over Iterations")
+plt.xlabel("Particle Position (x)")
+plt.ylabel("Value (y=0)")
+plt.legend()
+plt.grid()
+plt.show()

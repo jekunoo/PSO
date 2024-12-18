@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import matplotlib.pyplot as plt
 
 # Fungsi objektif yang akan diminimumkan (f(x, y))
 def objective_function(position):
@@ -42,6 +43,7 @@ class Swarm:
         self.gbest_position = None  # Posisi global terbaik
         self.gbest_value = float('inf')  # Nilai fungsi global terbaik
         self.particles = []  # Daftar partikel
+        self.history = []  # Untuk menyimpan posisi partikel tiap iterasi
 
         # Inisialisasi partikel
         for _ in range(num_particles):
@@ -51,42 +53,48 @@ class Swarm:
             self.particles.append(Particle(position, velocity))
 
     def optimize(self, max_iterations):
-            for iteration in range(max_iterations):
-                print(f"\nIteration {iteration + 1}")
-                print(f"{'Particle':<10} {'x':<10} {'y':<10} {'vx':<10} {'vy':<10} {'pBest_x':<10} {'pBest_y':<10} {'pBest_value':<15} {'gBest_value':<15}")
-                print("=" * 100)
+        for iteration in range(max_iterations):
+            print(f"\nIteration {iteration + 1}")
+            print(f"{'Particle':<10} {'x':<10} {'y':<10} {'vx':<10} {'vy':<10} {'pBest_x':<10} {'pBest_y':<10} {'pBest_value':<15} {'gBest_value':<15}")
+            print("=" * 100)
 
-                for idx, particle in enumerate(self.particles):
-                    # Hitung nilai fungsi di posisi partikel saat ini
-                    fitness = self.function(particle.position)
+            iteration_positions = []  # Untuk menyimpan posisi partikel pada iterasi ini
 
-                    # Update posisi terbaik partikel (pbest)
-                    if fitness < particle.pbest_value:
-                        particle.pbest_value = fitness
-                        particle.pbest_position = particle.position.copy()
+            for idx, particle in enumerate(self.particles):
+                # Hitung nilai fungsi di posisi partikel saat ini
+                fitness = self.function(particle.position)
 
-                    # Update posisi global terbaik (gbest)
-                    if fitness < self.gbest_value:
-                        self.gbest_value = fitness
-                        self.gbest_position = particle.position.copy()
+                # Update posisi terbaik partikel (pbest)
+                if fitness < particle.pbest_value:
+                    particle.pbest_value = fitness
+                    particle.pbest_position = particle.position.copy()
 
-                    # Cetak data partikel dalam iterasi ini
-                    x, y = particle.position
-                    vx, vy = particle.velocity
-                    pBest_x, pBest_y = particle.pbest_position
-                    print(f"{idx + 1:<10} {x:<10.4f} {y:<10.4f} {vx:<10.4f} {vy:<10.4f} {pBest_x:<10.4f} {pBest_y:<10.4f} {particle.pbest_value:<15.4f} {self.gbest_value:<15.4f}")
+                # Update posisi global terbaik (gbest)
+                if fitness < self.gbest_value:
+                    self.gbest_value = fitness
+                    self.gbest_position = particle.position.copy()
 
-                # Update velocity dan position semua partikel
-                for particle in self.particles:
-                    particle.update_velocity(self.W, self.c1, self.c2, self.gbest_position)
-                    particle.update_position(self.bounds)    
+                # Cetak data partikel dalam iterasi ini
+                x, y = particle.position
+                vx, vy = particle.velocity
+                pBest_x, pBest_y = particle.pbest_position
+                print(f"{idx + 1:<10} {x:<10.4f} {y:<10.4f} {vx:<10.4f} {vy:<10.4f} {pBest_x:<10.4f} {pBest_y:<10.4f} {particle.pbest_value:<15.4f} {self.gbest_value:<15.4f}")
 
+                # Simpan posisi partikel
+                iteration_positions.append(particle.position)
 
+            # Simpan posisi partikel untuk visualisasi
+            self.history.append(iteration_positions)
+
+            # Update velocity dan position semua partikel
+            for particle in self.particles:
+                particle.update_velocity(self.W, self.c1, self.c2, self.gbest_position)
+                particle.update_position(self.bounds)
 
 # Parameter
 num_particles = 10  # Jumlah partikel
 bounds = [-5, 5]  # Rentang posisi x dan y [-5, 5]
-max_iterations = 3  # Jumlah iterasi
+max_iterations = 10  # Jumlah iterasi
 
 # Jalankan optimasi
 swarm = Swarm(num_particles, bounds, objective_function)
@@ -96,3 +104,35 @@ swarm.optimize(max_iterations)
 print("\nFinal Result:")
 print(f"Global Best Position: {swarm.gbest_position}")
 print(f"Global Best Value: {swarm.gbest_value}")
+
+# Visualisasi posisi partikel dan gbest
+particle_positions_x = []
+particle_positions_y = []
+gbest_positions_x = []
+gbest_positions_y = []
+
+# Flatten history to collect all positions and highlight gbest per iteration
+for i, iteration_positions in enumerate(swarm.history):
+    for position in iteration_positions:
+        particle_positions_x.append(position[0])
+        particle_positions_y.append(position[1])
+    # Add the gbest position for each iteration
+    gbest_positions_x.append(swarm.gbest_position[0])
+    gbest_positions_y.append(swarm.gbest_position[1])
+
+# Plotting
+plt.figure(figsize=(8, 6))
+
+# Plot all particle positions
+plt.scatter(particle_positions_x, particle_positions_y, color='blue', label='Particle Positions')
+
+# Highlight the final global best position
+plt.scatter(swarm.gbest_position[0], swarm.gbest_position[1], color='red', s=100, label='Global Best')
+
+# Additional plot details
+plt.title("Particle Positions and Global Best")
+plt.xlabel("Position X")
+plt.ylabel("Position Y")
+plt.legend()
+plt.grid()
+plt.show()
