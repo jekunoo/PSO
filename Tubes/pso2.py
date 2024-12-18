@@ -86,15 +86,64 @@ class Swarm:
             # Simpan posisi partikel untuk visualisasi
             self.history.append(iteration_positions)
 
+            # Visualisasi setiap kelipatan 10 iterasi
+            if (iteration + 1) % 10 == 0:
+                self.visualize_plot(iteration + 1)
+
             # Update velocity dan position semua partikel
             for particle in self.particles:
                 particle.update_velocity(self.W, self.c1, self.c2, self.gbest_position)
                 particle.update_position(self.bounds)
 
+    def print_history(self):
+        print(f"{'Iteration':<10} {'Particle':<10} {'Position':<10} {'Velocity':<10} {'pBest':<15} {'gBest':<15}")
+        print("=" * 70)
+
+        for data in self.history:
+            iteration = data["iteration"]
+            gBest = data["gBest"]
+
+            for idx, p in enumerate(data["particles"]):
+                print(f"{iteration:<10} {idx+1:<10} {p['position']:<10.4f} {p['velocity']:<10.4f} "
+                      f"{p['pBest']:<15.4f} {gBest:<15.4f}")
+            print("-" * 70)
+
+    def visualize_plot(self, iteration):
+        particle_positions_x = []
+        particle_positions_y = []
+        gbest_positions_x = []
+        gbest_positions_y = []
+
+        # Flatten history to collect all positions and highlight gbest per iteration
+        for i, iteration_positions in enumerate(self.history):
+            for position in iteration_positions:
+                particle_positions_x.append(position[0])
+                particle_positions_y.append(position[1])
+            # Add the gbest position for each iteration
+            gbest_positions_x.append(self.gbest_position[0])
+            gbest_positions_y.append(self.gbest_position[1])
+
+        # Plotting
+        plt.figure(figsize=(8, 6))
+
+        # Plot all particle positions
+        plt.scatter(particle_positions_x, particle_positions_y, color='blue', label='Particle Positions')
+
+        # Highlight the final global best position
+        plt.scatter(self.gbest_position[0], self.gbest_position[1], color='red', s=100, label='Global Best')
+
+        # Additional plot details
+        plt.title(f"Particle Positions and Global Best at Iteration {iteration}")
+        plt.xlabel("Position X")
+        plt.ylabel("Position Y")
+        plt.legend()
+        plt.grid()
+        plt.show()
+
 # Parameter
 num_particles = 10  # Jumlah partikel
 bounds = [-5, 5]  # Rentang posisi x dan y [-5, 5]
-max_iterations = 10  # Jumlah iterasi
+max_iterations = 20  # Jumlah iterasi
 
 # Jalankan optimasi
 swarm = Swarm(num_particles, bounds, objective_function)
@@ -104,35 +153,3 @@ swarm.optimize(max_iterations)
 print("\nFinal Result:")
 print(f"Global Best Position: {swarm.gbest_position}")
 print(f"Global Best Value: {swarm.gbest_value}")
-
-# Visualisasi posisi partikel dan gbest
-particle_positions_x = []
-particle_positions_y = []
-gbest_positions_x = []
-gbest_positions_y = []
-
-# Flatten history to collect all positions and highlight gbest per iteration
-for i, iteration_positions in enumerate(swarm.history):
-    for position in iteration_positions:
-        particle_positions_x.append(position[0])
-        particle_positions_y.append(position[1])
-    # Add the gbest position for each iteration
-    gbest_positions_x.append(swarm.gbest_position[0])
-    gbest_positions_y.append(swarm.gbest_position[1])
-
-# Plotting
-plt.figure(figsize=(8, 6))
-
-# Plot all particle positions
-plt.scatter(particle_positions_x, particle_positions_y, color='blue', label='Particle Positions')
-
-# Highlight the final global best position
-plt.scatter(swarm.gbest_position[0], swarm.gbest_position[1], color='red', s=100, label='Global Best')
-
-# Additional plot details
-plt.title("Particle Positions and Global Best")
-plt.xlabel("Position X")
-plt.ylabel("Position Y")
-plt.legend()
-plt.grid()
-plt.show()
